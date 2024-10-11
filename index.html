@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق شدات ببجي</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            background-image: url('https://www.raed.net/img?id=888564');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+        }
+        #app {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8); /* خلفية داخلية بيضاء شفافة */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        h1 {
+            color: red;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: red;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .red-button {
+            background-color: red;
+            color: white;
+        }
+        .green-button {
+            background-color: green;
+            color: white;
+        }
+        .purple-button {
+            background-color: purple;
+            color: white;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        #gems-count {
+            margin-bottom: 20px;
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 24px; /* حجم الخط الكبير */
+            color: #000000; /* اللون الأسود الغامق */
+            text-align: center;
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+        @keyframes moveLeftRight {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(100%); }
+            100% { transform: translateX(0); }
+        }
+        .moving-text {
+            display: inline-block;
+            animation: moveLeftRight 10s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning {
+            animation: spin 2s linear;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>تطبيق شدات ببجي</h1>
+        
+        <!-- هدية يومية -->
+        <div id="daily-gift">
+            <button class="red-button" id="daily-gift-button" onclick="collectDailyGift()">استلم الهدية اليومية</button>
+            <p id="daily-gift-status"></p>
+        </div>
+        
+        <!-- استبيان -->
+        <div id="survey">
+            <h2>استبيان</h2>
+            <button class="green-button" id="survey-button" onclick="completeSurvey()">أكمل الاستبيان</button>
+            <p id="survey-status"></p>
+        </div>
+        
+        <!-- عجلة الحظ -->
+        <div id="wheel-of-fortune">
+            <h2>عجلة الحظ</h2>
+            <button class="purple-button" id="spin-button" onclick="spinWheel()">أدر العجلة</button>
+            <img id="wheel-image" src="https://www.raed.net/img?id=889999" alt="عجلة الحظ" width="200" height="200">
+            <p id="wheel-result"></p>
+        </div>
+        
+        <!-- عرض عدد الجواهر -->
+        <div id="gems-count">
+            <h2>عدد الجواهر: <span id="total-gems">0</span></h2>
+        </div>
+        
+        <!-- سحب الشدات -->
+        <div id="redeem-uc">
+            <h2>سحب الشدات</h2>
+            <input type="text" id="pubg-id" placeholder="أدخل ايدي حسابك ببجي">
+            <button class="red-button" onclick="redeemUC()">سحب الشدات</button>
+            <p id="redeem-status"></p>
+        </div>
+
+        <!-- حقوق المبرمج -->
+        <footer>
+            <p class="moving-text">تمت برمجة التطبيق بواسطة HZ © 2024</p>
+        </footer>
+
+        <!-- عرض score -->
+        <div id="score">
+            Score: <span id="score-value">0</span>
+        </div>
+
+        <!-- زر اشتراك في قناة اليوتيوب -->
+        <div id="youtube-subscribe">
+            <button class="purple-button" id="subscribe-button" onclick="subscribeToYoutube()">اضغط واشترك في قناة اليوتيوب واحصل على 10 جوهرة</button>
+        </div>
+    </div>
+    <script>
+        let totalGems = 0;
+        const maxSpinsPerDay = 5;
+        const maxSurveysPerDay = 3;
+        let spinsRemaining = maxSpinsPerDay;
+        let surveysRemaining = maxSurveysPerDay;
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // تحميل عدد الجواهر المخزن في localStorage عند تحميل الصفحة
+            totalGems = parseInt(localStorage.getItem('totalGems')) || 0;
+            updateTotalGems();
+
+            // إعداد محاولات الاستبيان
+            updateDailyAttempts('surveysRemaining', 'lastSurveyDate', maxSurveysPerDay);
+            surveysRemaining = parseInt(localStorage.getItem('surveysRemaining')) || maxSurveysPerDay;
+            updateSurveyButton();
+
+            // إعداد محاولات عجلة الحظ
+            updateDailyAttempts('spinsRemaining', 'lastSpinDate', maxSpinsPerDay);
+            spinsRemaining = parseInt(localStorage.getItem('spinsRemaining')) || maxSpinsPerDay;
+            updateSpinButton();
+
+            // إعداد زر الهدية اليومية
+            updateDailyGiftButton();
+        });
+
+        function collectDailyGift() {
+            const dailyGiftCollected = localStorage.getItem('dailyGiftCollected');
+            if (dailyGiftCollected === 'false' || !dailyGiftCollected) {
+                totalGems += 5;
+                localStorage.setItem('dailyGiftCollected', 'true');
+                localStorage.setItem('lastDailyGiftDate', new Date().toDateString());
+                updateTotalGems();
+                document.getElementById('daily-gift-status').textContent = 'لقد استلمت هديتك اليومية!';
+                updateDailyGiftButton();
+            } else {
+                document.getElementById('daily-gift-status').textContent = 'لقد استلمت هديتك اليومية بالفعل!';
+            }
+        }
+
+        function completeSurvey() {
+            if (surveysRemaining > 0) {
+                totalGems += 3;
+                surveysRemaining--;
+                updateTotalGems();
+                updateSurveyButton();
+                document.getElementById('survey-status').textContent = `لقد أكملت الاستبيان وحصلت على 3 جواهر! متبقي ${surveysRemaining} محاولات.`;
+                localStorage.setItem('surveysRemaining', surveysRemaining); // حفظ عدد المحاولات المتبقية في localStorage
+            } else {
+                document.getElementById('survey-status').textContent = 'لقد استنفدت جميع محاولاتك لإكمال الاستبيان لهذا اليوم.';
+            }
+        }
+
+        function spinWheel() {
+            if (spinsRemaining > 0) {
+                const wheel = document.getElementById('wheel-image');
+                wheel.classList.add('spinning');
+
+                setTimeout(() => {
+                    wheel.classList.remove('spinning');
+                    let result = Math.random() < 0.5 ? 5 : 7;
+                    totalGems += result;
+                    spinsRemaining--;
+                    updateTotalGems();
+                    updateSpinButton();
+                    document.getElementById('wheel-result').textContent = `لقد حصلت على ${result} جواهر!`;
+                    localStorage.setItem('spinsRemaining', spinsRemaining); // حفظ عدد المحاولات المتبقية في localStorage
+                }, 2000); // مدة الدوران 2 ثانية
+            } else {
+                document.getElementById('wheel-result').textContent = 'لقد استنفدت جميع المحاولات لهذا اليوم. حاول مرة أخرى غدًا.';
+            }
+        }
+
+        function updateTotalGems() {
+            document.getElementById('total-gems').textContent = totalGems;
+            document.getElementById('score-value').textContent = totalGems;
+            localStorage.setItem('totalGems', totalGems); // حفظ العدد في localStorage
+        }
+
+        function updateSpinButton() {
+            const spinButton = document.getElementById('spin-button');
+            spinButton.textContent = `أدر العجلة (محاولات متبقية: ${spinsRemaining})`;
+        }
+
+        function updateSurveyButton() {
+            const surveyButton = document.getElementById('survey-button');
+            surveyButton.textContent = `أكمل الاستبيان (محاولات متبقية: ${surveysRemaining})`;
+        }
+
+        function updateDailyGiftButton() {
+            const dailyGiftButton = document.getElementById('daily-gift-button');
+            if (localStorage.getItem('dailyGiftCollected') === 'true') {
+                dailyGiftButton.disabled = true;
+            } else {
+                dailyGiftButton.disabled = false;
+            }
+        }
+
+        function redeemUC() {
+            const pubgId = document.getElementById('pubg-id').value;
+            if (totalGems >= 1000 && pubgId) {
+                totalGems -= 1000;
+                updateTotalGems();
+                document.getElementById('redeem-status').textContent = 'تم سحب الشدات بنجاح!';
+            } else {
+                document.getElementById('redeem-status').textContent = 'يجب أن يكون لديك على الأقل 1000 جوهرة ورقم ايدي صحيح.';
+            }
+        }
+
+        function subscribeToYoutube() {
+            const youtubeUrl = 'https://youtube.com/@user-vj9qv7ly2w?si=IyndlO4D4jmI8uYz';
+            const newWindow = window.open(youtubeUrl, '_blank');
+
+            const checkSubscription = setInterval(() => {
+                if (newWindow.closed) {
+                    clearInterval(checkSubscription);
+                    let subscribed = confirm('هل قمت بالاشتراك في قناة اليوتيوب؟');
+                    if (subscribed) {
+                        totalGems += 10;
+                        updateTotalGems();
+                    } else {
+                        alert('يجب عليك الاشتراك في قناة اليوتيوب للحصول على الجواهر.');
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateDailyAttempts(localStorageKey, lastAttemptDateKey, maxAttempts) {
+            const lastAttemptDate = localStorage.getItem(lastAttemptDateKey);
+            if (!lastAttemptDate || new Date(lastAttemptDate).toDateString() !== new Date().toDateString()) {
+                localStorage.setItem(localStorageKey, maxAttempts);
+                localStorage.setItem(lastAttemptDateKey, new Date().toDateString());
+            }
+        }
+    </script>
+</body>
+</html>
